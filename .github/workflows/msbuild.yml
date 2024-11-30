@@ -1,34 +1,35 @@
-name: Build Visual Studio Solution
+name: MSBuild
 
 on:
   push:
-    branches:
-      - main  # 或指定需要触发构建的分支
+    branches: [ main ]
   pull_request:
+    branches: [ main ]
 
 jobs:
   build:
     runs-on: windows-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+    - uses: actions/checkout@v3
 
-    - name: Set up MSBuild
-      uses: microsoft/setup-msbuild@v1
+    - name: Add MSBuild to PATH
+      uses: microsoft/setup-msbuild@v1.1
 
-    - name: Install dependencies
+    - name: Setup Windows SDK
+      uses: microsoft/setup-windowsdriver-build-tools@v1
+      with:
+        wdk-version: '10.0.22621.0'  # 使用最新的 WDK 版本
+
+    - name: Build Solution
       run: |
-        choco install visualstudio2019buildtools --yes
-        choco install visualstudio2019-workload-vctools --yes
+        msbuild /m /p:Configuration=Release /p:Platform=x64 ItsNotASecurityBoundary.sln
 
-    - name: Build solution
-      run: |
-        msbuild ItsNotASecurityBoundary.sln /p:Configuration=Release /p:Platform=x64
-
-    - name: Upload artifacts
-      if: success()
+    - name: Upload Build Artifacts
       uses: actions/upload-artifact@v3
       with:
-        name: Build-Outputs
-        path: '**/Release/*'
+        name: binaries
+        path: |
+          x64/Release/*.exe
+          x64/Release/*.dll
+          x64/Release/*.sys 
